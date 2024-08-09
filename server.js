@@ -15,7 +15,7 @@ class WebsocketShellServer {
     constructor() {
         const shell = os.platform() === 'win32' ? 'powershell.exe' : 'login' // bash
         const server = http.createServer()
-        const wss = new WebSocket.Server({ server })
+        const wss = new WebSocket.Server({ noServer: true });
 
         wss.on('connection', (connection) => {
             const ptyProcess = pty.spawn(shell, [], {
@@ -48,6 +48,26 @@ class WebsocketShellServer {
                 ptyProcess.removeAllListeners()
                 ptyProcess.destroy()
             })
+        })
+
+        server.on('request', (req, res) => {
+            if (req.url === '/') {
+                res.writeHead(401, {'Content-Type': 'text/plain'})
+                res.end('401 Unauthorized')
+            } else {
+                res.writeHead(404, {'Content-Type': 'text/plain'})
+                res.end('404 Not Found')
+            }
+        });
+
+        server.on('upgrade', (request, socket, head) => {
+            if (request.url === '/ssh') {
+                wss.handleUpgrade(request, socket, head, (ws) => {
+                    wss.emit('connection', ws, request)
+                });
+            } else {
+                socket.destroy()
+            }
         })
 
         this.server = server
