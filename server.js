@@ -54,7 +54,7 @@ class WebsocketShellServer {
     }
 
     listen() {
-        this.server.listen(process.env.PORT || 8000, 'localhost', () => {
+        this.server.listen(process.env.PORT || 8000, '0.0.0.0', () => {
             console.log(`Server started on port ${this.server.address().port}`)
         })
     }
