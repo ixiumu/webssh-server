@@ -13,7 +13,7 @@ process.on('uncaughtException', (err) => {
 
 class WebsocketShellServer {
     constructor() {
-        const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash' // login
+        const shell = os.platform() === 'win32' ? 'powershell.exe' : 'login' // bash
         const server = http.createServer()
         const wss = new WebSocket.Server({ server })
 
