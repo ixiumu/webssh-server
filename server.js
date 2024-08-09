@@ -18,20 +18,20 @@ class WebsocketShellServer {
         const wss = new WebSocket.Server({ noServer: true });
 
         wss.on('connection', (connection) => {
-            const ptyProcess = pty.spawn(shell, [], {
+            const term = pty.spawn(shell, [], {
                 cwd: process.env.HOME,
                 env: process.env
             })
 
-            ptyProcess.on('data', (data) => {
+            term.on('data', (data) => {
                 connection.send(data)
             })
 
-            ptyProcess.on('error', (err) => {
-                console.error('Error in ptyProcess:', err)
+            term.on('error', (err) => {
+                console.error('Error in term:', err)
             })
 
-            ptyProcess.once('close', () => {
+            term.once('close', () => {
                 connection.removeAllListeners()
                 connection.close()
             })
@@ -39,23 +39,28 @@ class WebsocketShellServer {
             connection.on('message', (data) => {
                 if (Buffer.from('ping').compare(data) === 0) {
                     connection.send('pong')
+                } else if (data.length > 9 && Buffer.from('resize:').compare(data.slice(0, 7)) === 0) {
+                    const size = data.toString().split(':')
+                    const cols = parseInt(size[1], 10)
+                    const rows = parseInt(size[2], 10)
+                    term.resize(cols, rows)
                 } else {
-                    ptyProcess.write(data)
+                    term.write(data)
                 }
             })
 
             connection.once('close', () => {
-                ptyProcess.removeAllListeners()
-                ptyProcess.destroy()
+                term.removeAllListeners()
+                term.destroy()
             })
         })
 
         server.on('request', (req, res) => {
             if (req.url === '/') {
-                res.writeHead(401, {'Content-Type': 'text/plain'})
+                res.writeHead(401, { 'Content-Type': 'text/plain' })
                 res.end('401 Unauthorized')
             } else {
-                res.writeHead(404, {'Content-Type': 'text/plain'})
+                res.writeHead(404, { 'Content-Type': 'text/plain' })
                 res.end('404 Not Found')
             }
         });
