@@ -3,7 +3,6 @@ const os = require('os')
 const pty = require('node-pty')
 const http = require('http')
 const { exec } = require('child_process')
-const os = require('os')
 
 process.on('uncaughtException', (err) => {
     if (err.message === 'read EPIPE') {
@@ -92,13 +91,17 @@ class WebsocketShellServer {
         const password = process.env.PASSWORD
         if (password) {
             console.log(`Found the environment variable PASSWORD, preparing to change the password for user ${currentUser}...`)
-            exec(`echo "${currentUser}:${password}" | chpasswd`, (error, stdout, stderr) => {
-                if (error) {
-                    console.error(`Error: ${error}`)
-                } else {
-                    console.log(`Password for ${currentUser} changed successfully!`)
-                }
-            })
+            if (os.platform() === 'linux') {
+                exec(`echo "${currentUser}:${password}" | chpasswd`, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error(`Error: ${error}`)
+                    } else {
+                        console.log(`Password for ${currentUser} changed successfully!`)
+                    }
+                })
+            } else {
+                console.log('Error: Only Linux supports changing user passwords')
+            }
         }
     }
 }
