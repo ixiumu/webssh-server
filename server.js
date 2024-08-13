@@ -2,6 +2,8 @@ const WebSocket = require('ws')
 const os = require('os')
 const pty = require('node-pty')
 const http = require('http')
+const { exec } = require('child_process')
+const os = require('os')
 
 process.on('uncaughtException', (err) => {
     if (err.message === 'read EPIPE') {
@@ -13,7 +15,7 @@ process.on('uncaughtException', (err) => {
 
 class WebsocketShellServer {
     constructor() {
-        const shell = os.platform() === 'win32' ? 'powershell.exe' : 'login' // bash
+        const shell = os.platform() === 'win32' ? 'powershell.exe' : 'login'
         const server = http.createServer()
         const wss = new WebSocket.Server({ noServer: true });
 
@@ -79,9 +81,25 @@ class WebsocketShellServer {
     }
 
     listen() {
+        this.password()
         this.server.listen(process.env.PORT || 8000, '0.0.0.0', () => {
             console.log(`Server started on port ${this.server.address().port}`)
         })
+    }
+
+    password() {
+        const currentUser = os.userInfo().username
+        const password = process.env.PASSWORD
+        if (password) {
+            console.log(`Found the environment variable PASSWORD, preparing to change the password for user ${currentUser}...`)
+            exec(`echo "${currentUser}:${password}" | chpasswd`, (error, stdout, stderr) => {
+                if (error) {
+                    console.error(`Error: ${error}`)
+                } else {
+                    console.log(`Password for ${currentUser} changed successfully!`)
+                }
+            })
+        }
     }
 }
 
